@@ -401,6 +401,68 @@ async def execute_web_automation(request: WebAutomationRequest):
         logger.error(f"Web automation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/gmail-automation")
+async def execute_gmail_automation(request: dict):
+    """
+    Execute Gmail automation tasks
+    """
+    try:
+        action = request.get("action")
+        params = request.get("parameters", {})
+        
+        if action == "check_inbox":
+            result = gmail_service.get_inbox_messages(
+                max_results=params.get("max_results", 10),
+                query=params.get("query")
+            )
+        elif action == "unread_count":
+            result = gmail_service.get_unread_count()
+        elif action == "search":
+            result = gmail_service.search_emails(
+                query=params.get("query", ""),
+                max_results=params.get("max_results", 10)
+            )
+        elif action == "send":
+            result = gmail_service.send_email(
+                to=params.get("to"),
+                subject=params.get("subject"),
+                body=params.get("body"),
+                cc=params.get("cc"),
+                bcc=params.get("bcc")
+            )
+        elif action == "mark_read":
+            result = gmail_service.mark_as_read(params.get("message_ids", []))
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported Gmail action: {action}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Gmail automation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/gmail-auth-status")
+async def get_gmail_auth_status():
+    """Check Gmail authentication status"""
+    try:
+        if gmail_service.service:
+            profile = gmail_service.get_user_profile()
+            return {
+                "authenticated": True,
+                "email_address": profile.get("email_address"),
+                "status": "Connected to Gmail API"
+            }
+        else:
+            return {
+                "authenticated": False,
+                "status": "Gmail API not authenticated. Please run authentication flow."
+            }
+    except Exception as e:
+        return {
+            "authenticated": False,
+            "status": f"Authentication check failed: {str(e)}"
+        }
+
 @api_router.get("/automation-history/{session_id}")
 async def get_automation_history(session_id: str):
     """Get automation history for a session"""
@@ -460,7 +522,8 @@ async def health_check():
                     "claude_tasks": ["high_emotional", "creative_content", "conversational", "professional_warm"],
                     "groq_tasks": ["logical_reasoning", "structured_analysis", "technical_complex", "intent_detection"],
                     "sequential_tasks": ["professional_emails", "linkedin_posts", "complex_creative"],
-                    "web_automation_tasks": ["web_scraping", "linkedin_insights", "email_automation", "price_monitoring", "data_extraction"]
+                    "web_automation_tasks": ["web_scraping", "linkedin_insights", "email_automation", "price_monitoring", "data_extraction"],
+                    "gmail_integration_tasks": ["gmail_check_inbox", "gmail_unread_count", "gmail_search", "gmail_send", "gmail_mark_read"]
                 }
             },
             "n8n_webhook": "configured" if os.getenv("N8N_WEBHOOK_URL") else "missing",
@@ -470,6 +533,14 @@ async def health_check():
                 "capabilities": [
                     "dynamic_data_extraction", "linkedin_insights_scraping", 
                     "email_automation", "price_monitoring", "stealth_mode"
+                ]
+            },
+            "gmail_service": {
+                "status": "available" if gmail_service.service else "not_authenticated",
+                "authenticated": bool(gmail_service.service),
+                "capabilities": [
+                    "inbox_checking", "email_sending", "email_search", 
+                    "unread_count", "mark_as_read", "oauth2_authentication"
                 ]
             }
         }
