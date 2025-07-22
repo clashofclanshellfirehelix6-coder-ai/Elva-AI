@@ -32,7 +32,12 @@ You can detect the following intents:
 3. add_todo
 4. set_reminder
 5. linkedin_post
-6. general_chat
+6. gmail_check_inbox
+7. gmail_unread_count
+8. gmail_search
+9. gmail_send
+10. gmail_mark_read
+11. general_chat
 
 Examples of COMPLETE JSON responses:
 
@@ -76,6 +81,39 @@ For "Post about AI on LinkedIn":
   "topic": "Artificial Intelligence",
   "category": "Technology",
   "post_content": "Excited to share insights about AI advancements! #AI #Technology"
+}}
+
+For "Check my Gmail inbox" or "Show me my emails":
+{{
+  "intent": "gmail_check_inbox",
+  "max_results": 10,
+  "query": ""
+}}
+
+For "How many unread emails do I have?":
+{{
+  "intent": "gmail_unread_count"
+}}
+
+For "Search for emails from John":
+{{
+  "intent": "gmail_search",
+  "query": "from:john",
+  "max_results": 10
+}}
+
+For "Send an email via Gmail to sarah@example.com about meeting":
+{{
+  "intent": "gmail_send",
+  "to": "sarah@example.com",
+  "subject": "Meeting Discussion",
+  "body": "Hi Sarah, I wanted to discuss our upcoming meeting..."
+}}
+
+For "Mark these emails as read":
+{{
+  "intent": "gmail_mark_read",
+  "message_ids": []
 }}
 
 For anything else:

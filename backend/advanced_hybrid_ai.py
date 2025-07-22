@@ -76,7 +76,10 @@ class AdvancedHybridAI:
             "linkedin_job_alerts",
             "check_website_updates",
             "monitor_competitors", 
-            "scrape_news_articles"
+            "scrape_news_articles",
+            # Gmail direct automation intents
+            "gmail_check_inbox",
+            "gmail_unread_count"
         ]
         return intent in direct_automation_intents
 
@@ -89,7 +92,10 @@ class AdvancedHybridAI:
             "linkedin_job_alerts": "💼 Checking LinkedIn job alerts...",
             "check_website_updates": "🔍 Monitoring website updates...",
             "monitor_competitors": "📊 Analyzing competitor data...",
-            "scrape_news_articles": "📰 Gathering latest news..."
+            "scrape_news_articles": "📰 Gathering latest news...",
+            # Gmail status messages
+            "gmail_check_inbox": "📧 Checking Gmail inbox...",
+            "gmail_unread_count": "📬 Counting unread emails..."
         }
         return status_messages.get(intent, "🔍 Searching the web...")
 
@@ -123,6 +129,13 @@ class AdvancedHybridAI:
                 "monitor_competitors": {"model": ModelChoice.GROQ, "confidence": 0.8, "direct_automation": True},
                 "scrape_news_articles": {"model": ModelChoice.GROQ, "confidence": 0.8, "direct_automation": True}
             },
+            
+            # Gmail integration intents
+            "gmail_check_inbox": {"model": ModelChoice.GROQ, "confidence": 0.9, "direct_automation": True},
+            "gmail_unread_count": {"model": ModelChoice.GROQ, "confidence": 0.9, "direct_automation": True},
+            "gmail_search": {"model": ModelChoice.GROQ, "confidence": 0.8},
+            "gmail_send": {"model": ModelChoice.GROQ, "confidence": 0.8},
+            "gmail_mark_read": {"model": ModelChoice.GROQ, "confidence": 0.8},
             
             # Emotional complexity routing
             "emotional_routing": {

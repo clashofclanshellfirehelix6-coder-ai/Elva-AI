@@ -48,6 +48,18 @@ class DirectAutomationHandler:
                 "success_template": "📰 **Latest News** ({count} articles)\n{articles}",
                 "error_template": "❌ Unable to scrape news articles: {error}",
                 "automation_type": "web_scraping"
+            },
+            
+            # Gmail automation templates
+            "gmail_check_inbox": {
+                "success_template": "📧 **Gmail Inbox** ({count} messages)\n{messages}",
+                "error_template": "❌ Unable to check Gmail inbox: {error}",
+                "automation_type": "gmail_integration"
+            },
+            "gmail_unread_count": {
+                "success_template": "📬 **Unread Emails**: {unread_count} messages",
+                "error_template": "❌ Unable to get unread count: {error}",
+                "automation_type": "gmail_integration"
             }
         }
     
@@ -87,6 +99,8 @@ class DirectAutomationHandler:
                 result = await self._handle_data_extraction(intent, intent_data)
             elif automation_type == "web_scraping":
                 result = await self._handle_web_scraping(intent, intent_data)
+            elif automation_type == "gmail_integration":
+                result = await self._handle_gmail_automation(intent, intent_data)
             else:
                 result = {"success": False, "data": {}, "message": "Unknown automation type"}
             
@@ -341,6 +355,80 @@ class DirectAutomationHandler:
         except Exception as e:
             return {"success": False, "data": {}, "message": str(e)}
     
+    async def _handle_gmail_automation(self, intent: str, intent_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle Gmail-related automation"""
+        try:
+            from gmail_service import gmail_service
+            
+            if intent == "gmail_check_inbox":
+                # Check Gmail inbox
+                max_results = intent_data.get("max_results", 10)
+                query = intent_data.get("query")
+                
+                # Authenticate if not already done
+                if not gmail_service.service:
+                    auth_success = gmail_service.authenticate()
+                    if not auth_success:
+                        return {
+                            "success": False,
+                            "data": {},
+                            "message": "Gmail authentication failed. Please set up Gmail API credentials."
+                        }
+                
+                # Get inbox messages
+                result = gmail_service.get_inbox_messages(max_results=max_results, query=query)
+                
+                if result["success"]:
+                    return {
+                        "success": True,
+                        "data": {
+                            "count": result["count"],
+                            "messages": result["messages"],
+                            "total_in_inbox": result.get("total_in_inbox", 0)
+                        },
+                        "message": result["message"]
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "data": {},
+                        "message": result.get("error", "Failed to check Gmail inbox")
+                    }
+            
+            elif intent == "gmail_unread_count":
+                # Get unread count
+                if not gmail_service.service:
+                    auth_success = gmail_service.authenticate()
+                    if not auth_success:
+                        return {
+                            "success": False,
+                            "data": {},
+                            "message": "Gmail authentication failed. Please set up Gmail API credentials."
+                        }
+                
+                result = gmail_service.get_unread_count()
+                
+                if result["success"]:
+                    return {
+                        "success": True,
+                        "data": {
+                            "unread_count": result["unread_count"]
+                        },
+                        "message": result["message"]
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "data": {},
+                        "message": result.get("error", "Failed to get unread count")
+                    }
+            
+            return {"success": False, "data": {}, "message": "Gmail automation not implemented"}
+            
+        except Exception as e:
+            logger.error(f"Gmail automation error: {e}")
+            return {"success": False, "data": {}, "message": str(e)}
+    
     def _format_success_result(self, intent: str, data: Dict[str, Any], template_info: Dict[str, str]) -> str:
         """Format successful automation result using template"""
         try:
@@ -398,6 +486,28 @@ class DirectAutomationHandler:
         except Exception as e:
             logger.error(f"Template formatting error: {e}")
             return f"✅ Automation completed successfully\n{data}"
+    
+    def _format_gmail_success_result(self, intent: str, data: Dict[str, Any], template_info: Dict[str, str]) -> str:
+        """Format Gmail automation success result"""
+        try:
+            if intent == "gmail_check_inbox":
+                messages_text = "\n".join([
+                    f"• **{msg['subject']}** from {msg['sender']} {'🔴' if msg.get('is_unread') else ''}\n  {msg['body_preview'][:100]}..."
+                    for msg in data.get("messages", [])[:5]  # Show first 5 messages
+                ])
+                return template_info["success_template"].format(
+                    count=data.get("count", 0),
+                    messages=messages_text
+                )
+            
+            elif intent == "gmail_unread_count":
+                return template_info["success_template"].format(**data)
+            
+            return f"✅ Gmail automation completed successfully\n{data}"
+            
+        except Exception as e:
+            logger.error(f"Gmail template formatting error: {e}")
+            return f"✅ Gmail automation completed successfully\n{data}"
 
 # Global instance
 direct_automation_handler = DirectAutomationHandler()
